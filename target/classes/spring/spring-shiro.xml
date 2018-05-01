@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <bean  id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"></property>
+         <!--登录路径-->
+         <property name="loginUrl" value="/Page/tologin.do"></property>
+        <!--未认证页面-->
+         <property name="unauthorizedUrl" value="/WEB-INF/Page/unauthorized.jsp"></property>
+         <!--过滤器链-->
+         <property name="filterChainDefinitions">
+            <value>
+                  /Page/tologin.do= anon<!--不需要认证-->
+                /Page/login.do= anon
+                /Page/toSuccess.do = authc <!--需要认证权限后才能访问-->
+               <!--  /Page/login.do=roles["admin"]
+                /Page/testRole.do=perms["user:select"]
+                /Page/test.do=roles["admin1"]-->
+
+            </value>
+        </property>
+    </bean>
+
+   <!--创建securityManager对象-->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <!--配置realm-->
+        <property name="realm" ref="myRealm"/>
+        <!--配置sessionManager-->
+        <property name="sessionManager" ref="defaultWebSessionManager"></property>
+        <!--配置自动登录-->
+        <property name="rememberMeManager" ref="cookieRememberMeManager"/>
+    </bean>
+
+    <!--指定创建realm类-->
+    <bean id="myRealm" class="com.Realm.myRealm">
+        <property name="credentialsMatcher" ref="credentialsMatcher"></property>
+    </bean>
+
+    <!--设置加密-->
+    <bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher" id="credentialsMatcher">
+        <property name="hashAlgorithmName" value="md5"></property>
+        <property name="hashIterations" value="1"></property>
+    </bean>
+
+    <!--注解的方式配置授权-->
+   <aop:config proxy-target-class="true"/>
+
+    <bean class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+        <property name="securityManager" ref="securityManager"/>
+    </bean>
+
+    <!--shiro的会话管理-->
+    <bean class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager" id="defaultWebSessionManager">
+        <property name="sessionDAO" ref="redisSession"/>
+    </bean>
+
+    <bean class="com.session.RedisSession" id="redisSession"></bean>
+
+    <!--shiro自动登录-->
+    <bean class="org.apache.shiro.web.mgt.CookieRememberMeManager" id="cookieRememberMeManager">
+        <property name="cookie" ref="simpleCookie"></property>
+    </bean>
+
+    <bean class="org.apache.shiro.web.servlet.SimpleCookie" id="simpleCookie">
+        <constructor-arg value="rememberMe"></constructor-arg>
+        <!--存活时间单位为秒-->
+        <property name="maxAge" value="604800"></property>
+    </bean>
+
+</beans>
